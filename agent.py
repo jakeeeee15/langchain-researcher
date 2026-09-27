@@ -6,6 +6,7 @@ from warnings import filterwarnings
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.runnables import Runnable
 import time
+from langchain_openai import ChatOpenAI
 
 filterwarnings('ignore')
 import urllib3
@@ -70,16 +71,24 @@ def stream_ans(agent:Runnable, prompt, config):
                 print(f"✅ [Tool Execution] -> Scraped {len(last_msg.content)} characters of text.")
 
             elif last_msg.content:
-                print(last_msg.content[0]["text"])
+                print(last_msg.content)
 
 
 
 if __name__ == "__main__":
     load_dotenv()
 
-    llm = ChatGoogleGenerativeAI(
-        model='gemini-3.5-flash-lite',
-        temperature=0,
+    # llm = ChatGoogleGenerativeAI(
+    #     model='gemini-3.5-flash-lite',
+    #     temperature=0,
+    # )
+
+    llm = ChatOpenAI(
+        model="deepseek-v4.1-flash:free",  # You can also freely swap this to "gpt-4o", "claude-3-5-sonnet", etc.
+        api_key=os.environ.get("HARB_API_KEY"),
+        base_url="https://tokenharbor.ai/v1",
+        max_tokens=1024,
+        temperature=0
     )
 
     tools = [get_info_from_query]
@@ -88,7 +97,9 @@ if __name__ == "__main__":
 
     agent = create_agent(
         model=llm,
-        system_prompt="You are a research agent that gives short and concise answers to questions",
+        system_prompt=("You are a research agent that gives short and concise answers to questions"
+                       "do not use tool call more than 3 times. Try ur maximum to reduce the number of tool calls. Use the tool whenever u like, just avoid multiple calls"
+                       "Use the tool whenever needed. Do not give out wrong information"),
         tools=tools,
         checkpointer=checkpointer
     )
